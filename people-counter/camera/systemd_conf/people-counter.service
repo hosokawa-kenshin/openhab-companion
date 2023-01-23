@@ -1,0 +1,19 @@
+[Unit]
+Description=People Counter with Multi Media
+Requires=network.service
+After=network.service
+
+[Service]
+# Change WorkingDirectory to suit your environment
+WorkingDirectory = /path/to/this/repository
+ExecStart=/path/to/this/repository/launch.sh "https://video.streaming.com" "mqtt.server.com" 1883 "poeple/counter/topic/name"
+
+# Change User
+User=people_conter
+
+EnvironmentFile = /etc/sysconfig/people-conter_environment
+Type=simple
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
