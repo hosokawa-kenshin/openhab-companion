@@ -1,0 +1,15 @@
+[Unit]
+Description=Bluetooth Scanner
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory = /home/nomlab/blescan
+ExecStart=/home/nomlab/blescan/blescan.sh
+EnvironmentFile=/etc/sysconfig/blescan_environment
+User=nomlab
+Type=simple
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
