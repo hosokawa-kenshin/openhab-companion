@@ -1,0 +1,16 @@
+[Unit]
+Description=Beacone
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=/etc/environment/beacone_environment
+User=you
+WorkingDirectory = /path/to/beacone
+ExecStart=/path/to/beacone/beacone.sh
+
+Type=simple
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
