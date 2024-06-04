@@ -29,6 +29,29 @@ function publish_to_mqtt() {
 function subscribe_from_mqtt() {
   mosquitto_sub -h "$MQTT_HOST" -t "$MQTT_SUB_TOPIC" -F "%I %t %p" >> $LOG_FILE
 }
+
+function search_max_rssi_room() {
+  local max_rssi=-999
+  local threshold=-73
+  local max_line=""
+  local lines="$1"
+
+  while IFS= read -r line; do
+    rssi=$(echo "$line" | awk '{print $3}' | jq -r '.rssi')
+    room=$(echo "$line" | grep -oE 'room[0-9]+')
+    if [[ "$rssi" -gt "$threshold" ]] && [[ "$rssi" -gt "$max_rssi" ]]; then
+      max_rssi=$rssi
+      max_room="$room"
+    fi
+  done <<< "$lines"
+
+  if [[ "$max_rssi" -gt -999 ]]; then
+    echo "$max_room"
+  else
+    echo "absence"
+  fi
+}
+
 # Fetch active member list from Google Spreadsheet and
 # shows account and beacon minor id in TSV format.
 #
@@ -36,24 +59,6 @@ function subscribe_from_mqtt() {
 # nom	xxx
 # ueno	xxx
 # :
-#
-
-function search_max_rssi_room() {
-  local max_rssi=-999
-  local max_line=""
-  local lines="$1"
-  
-  while IFS= read -r line; do
-    rssi=$(echo "$line" | awk '{print $3}' | jq -r '.rssi')
-    room=$(echo "$line" | grep -oE 'room[0-9]+')
-    if [[ "$rssi" -gt "$max_rssi" ]]; then
-      max_rssi=$rssi
-      max_room="$room"
-    fi
-  done <<< "$lines"
-
-  echo "$max_room"
-}
 
 function update_nomlab_members() {
   sheetq show --format=json members \
