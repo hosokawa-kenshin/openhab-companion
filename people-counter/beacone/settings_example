@@ -1,0 +1,6 @@
+MQTT_HOST="mqtt.example.com"
+MQTT_PUB_TOPIC_BASE="example/pub/topic"
+MQTT_SUB_TOPIC="example/sub/topic/beacon/mediator"
+INTERVAL=30 #seconds
+LOG_FILE="/path/to/log_file.log"
+# If LOG_FILE is empty, assigned default value as "$(dirname "$0")/beacon.log"
