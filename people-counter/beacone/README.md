@@ -3,8 +3,45 @@
 
 ## 使い方
 1. [sheetq](https://github.com/nomlab/sheetq)をインストール，認証を行い，使用可能な状態にする．
-2. 設定ファイルを作成する．
+2. Beacon テーブル，Mediator テーブルのデータ設定ファイルを作成する．
     ```bash
+    cd db
+    cp sample_data.sql data.sql
+    vim data.sql
+    ```
+    各テーブルは以下のスキーマになっているため，各環境に合わせて設定する．
+    #### Beacon テーブル
+
+    ```sql
+    CREATE TABLE Beacon(
+      ID int primary key,
+      UUID char(36),
+      Major int,
+      Minor int,
+      TxPower int,
+      Description varchar(255)
+    );
+    ```
+    #### Mediator テーブル
+
+    ```sql
+    CREATE TABLE Mediator(
+      ID int primary key,
+      UID varchar(20),
+      Room varchar(10),
+      X_Coordinate double,
+      Y_Coordinate double,
+      Z_Coordinate double,
+      Description varchar(255)
+    );
+    ```
+3. スキーマ定義ファイルとデータ設定ファイルを用いてデータベースファイルを作成する．
+   ```bash
+   sqlite3 beacone.db < schema.sql
+   sqlite3 beacone.db < data.sql
+4. 設定ファイルを作成する．
+    ```bash
+    cd ..
     cp settings.example settings
     vim settings
     ```
@@ -13,12 +50,12 @@
     * MQTT_PUB_TOPIC: 在室状態をパブリッシュするトピック名
     * MQTT_SUB_TOPIC: Mediator のログをサブスクライブするトピック名
     * INTERVAL: 何秒おきにログを確認するか
-    * LOG_FILE: ログファイルの置き場所 (空のままだと，このスクリプトと同じディレクトリに `beacon.log` というファイルが作成・使用される)
-3. そのまま動かす場合
+    * DB_FILE: ログファイルの置き場所 (空のままだと，このスクリプトと同じディレクトリの `db` ディレクトリに `beacone.db` というファイルが作成・使用される)
+5. そのまま動かす場合
     ```bash
     ./beacone.sh
     ```
-4. systemd 経由で使う / 自動起動させたい場合
+6. systemd 経由で使う / 自動起動させたい場合
     1. systemd の設定ファイルを配置する
         ```bash
         sudo cp systemd/beacone.service /etc/systemd/system/
