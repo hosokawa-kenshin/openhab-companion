@@ -1,2 +1,4 @@
 *.log
 settings
+*.db
+nomlab_data.sql

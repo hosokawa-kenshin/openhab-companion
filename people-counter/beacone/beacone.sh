@@ -5,10 +5,44 @@ source settings
 
 cd "$(dirname "$0")"
 
-if [ -z "$LOG_FILE" ]; then
-  LOG_FILE="$(dirname "$0")/beacon.log"
+if [ -z "$DB_FILE" ]; then
+  DB_FILE="$(dirname "$0")/db/beacone.db"
 fi
 
+# Get a new ID
+new_id=$(( $(sqlite3 $DB_FILE "SELECT MAX(ID) FROM Signal;") + 1 ))
+
+# If the ID is not obtained, set 0
+if [ -z "$new_id" ]; then
+    new_id=0
+    echo $new_id
+fi
+
+# Insert data into the Signal table
+function insert_to_db() {
+  sqlite3 $DB_FILE -cmd ".timeout 20000"<<EOF
+INSERT INTO Signal (ID, BeaconUUID, MediatorUID, RSSI, Timestamp, Description)
+VALUES ($1, '$2', '$3', $4, '$5', '$6');
+EOF
+}
+
+# Receive data from MQTT and insert it into the database
+function subscribe_from_mqtt() {
+  mosquitto_sub -h "$MQTT_HOST" -t "$MQTT_SUB_TOPIC" -F "%I %t %p" | while read line; do
+    timestamp=$(echo "$line" | cut -d ' ' -f1)
+    mediator_uid=$(echo "$line" | cut -d ' ' -f2 | cut -d '/' -f7)
+    json=$(echo "$line" | cut -d ' ' -f3-)
+
+    beacon_uuid=$(echo "$json" | jq -r '.uuid')
+    rssi=$(echo "$json" | jq -r '.rssi')
+    tx_power=$(echo "$json" | jq -r '.txpower')
+
+    insert_to_db $new_id $beacon_uuid $mediator_uid $rssi $timestamp ""
+    new_id=$(( $new_id + 1 ))
+  done
+}
+
+# Cleanup function to kill the subscribe_from_mqtt process
 function cleanup() {
   echo "Cleaning up..."
   # Kill the subscribe_from_mqtt process
@@ -21,36 +55,12 @@ function cleanup() {
 # Set trap to call cleanup function on script exit
 trap cleanup EXIT
 
+# Publish data to MQTT
 function publish_to_mqtt() {
   local message="$1"
   mosquitto_pub -h "$MQTT_HOST" -t "$MQTT_PUB_TOPIC" -m "$message"
 }
 
-function subscribe_from_mqtt() {
-  mosquitto_sub -h "$MQTT_HOST" -t "$MQTT_SUB_TOPIC" -F "%I %t %p" >> $LOG_FILE
-}
-
-function search_max_rssi_room() {
-  local max_rssi=-999
-  local threshold=-73
-  local max_line=""
-  local lines="$1"
-
-  while IFS= read -r line; do
-    rssi=$(echo "$line" | awk '{print $3}' | jq -r '.rssi')
-    room=$(echo "$line" | grep -oE 'room[0-9]+')
-    if [[ "$rssi" -gt "$threshold" ]] && [[ "$rssi" -gt "$max_rssi" ]]; then
-      max_rssi=$rssi
-      max_room="$room"
-    fi
-  done <<< "$lines"
-
-  if [[ "$max_rssi" -gt -999 ]]; then
-    echo "$max_room"
-  else
-    echo "absence"
-  fi
-}
 
 # Fetch active member list from Google Spreadsheet and
 # shows account and beacon minor id in TSV format.
@@ -90,13 +100,39 @@ function main() {
     # Collect log
     sleep $INTERVAL
 
+    last_log_time="$(sqlite3 $DB_FILE 'SELECT Timestamp FROM Signal ORDER BY ID DESC LIMIT 1;')"
+
+    # If there is no new log, skip the process
+    if [[ "$sentinel" < "$last_log_time" ]]; then
+      isExistLog=1
+    else
+      isExistLog=0
+    fi
+
     echo "$members" | \
       while read account uuid
       do
         echo -n "$account: "
         # If specific bminor exits in collected log
-        if result=$(echo "$(cat "$LOG_FILE"; echo "$sentinel")" | sort -k 1 | sed -e "1,/^$sentinel/ d" | grep "$uuid") ; then 
-          status=$(search_max_rssi_room "$result")
+        if [[ $isExistLog ]] ; then
+
+          result=$(sqlite3 $DB_FILE -cmd ".timeout 20000"<<EOF
+SELECT Mediator.Room
+FROM Signal
+JOIN Mediator ON Signal.MediatorUID = Mediator.UID
+WHERE Signal.BeaconUUID = '$uuid'
+  AND Signal.Timestamp >= '$sentinel'
+  AND Signal.RSSI >= '$THRESHOLD'
+ORDER BY Signal.RSSI DESC
+LIMIT 1;
+EOF
+          )
+
+          if [ -z "$result" ]; then
+            status="absence"
+          else
+            status="$result"
+          fi
         else
           status="absence"
         fi
