@@ -25,5 +25,5 @@ export DISPLAY=$DISPLAY_ALT
 
 cd "$(dirname "$0")"
 Xvfb -ac $DISPLAY -screen 0 1980x1080x24 &
-python3 ../detect.py --source "$1" --mqtt-server "$2" --mqtt-port "$3" --mqtt-topic "$4"
+python3 ../camera_people-counter.py --source "$1" --mqtt-server "$2" --mqtt-port "$3" --mqtt-topic "$4"
 
