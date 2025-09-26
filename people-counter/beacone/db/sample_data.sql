@@ -13,6 +13,12 @@ VALUES
 ('10', '2d4f72e5-f123-4dbe-b034-75f5cb89e234', 2, 309, -65, 'kato'),
 ('11', '6b3f97b9-c342-4f23-b546-45f3cb89c123', 2, 310, -63, 'murakami'),
 ('12', 'a1d4e0b2-5c23-4d34-a456-55f6cb89e654', 2, 311, -67, 'ishikawa');
+ON CONFLICT(ID) DO UPDATE SET
+  UUID = excluded.UUID,
+  Major = excluded.Major,
+  Minor = excluded.Minor,
+  TxPower = excluded.TxPower,
+  Description = excluded.Description;
 
 -- Mediatorテーブルのデータ
 INSERT INTO Mediator (ID, UID, Room, X_Coordinate, Y_Coordinate, Z_Coordinate, Description)
@@ -23,3 +29,10 @@ VALUES
 ('4', 'blescanner-101jkl', 'room204', 2.0, 2.5, 0.1, 'Conference Room'),
 ('5', 'blescanner-202mno', 'room205', 0.0, 0.0, 0.0, 'Reception Area'),
 ('6', 'blescanner-303pqr', 'room301', 3.0, 3.0, 0.0, 'Executive Office');
+ON CONFLICT(ID) DO UPDATE SET
+  UID = excluded.UID,
+  Room = excluded.Room,
+  X_Coordinate = excluded.X_Coordinate,
+  Y_Coordinate = excluded.Y_Coordinate,
+  Z_Coordinate = excluded.Z_Coordinate,
+  Description = excluded.Description;

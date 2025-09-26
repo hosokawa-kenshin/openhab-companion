@@ -25,3 +25,8 @@ CREATE TABLE Signal (
   Timestamp datetime,
   Description varchar(255),
 );
+
+CREATE INDEX IF NOT EXISTS idx_signal_timestamp ON Signal(Timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_signal_beacon_timestamp ON Signal(BeaconUUID, Timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_signal_beacon_rssi ON Signal(BeaconUUID, RSSI DESC);
+CREATE INDEX IF NOT EXISTS idx_signal_mediator ON Signal(MediatorUID);
